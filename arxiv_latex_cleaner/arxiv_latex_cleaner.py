@@ -348,9 +348,18 @@ def _search_reference(filename, contents, strict=False):
   else:
     basename = os.path.basename(filename)
     # make extension optional
-    root, extension = os.path.splitext(basename)
-    unescaped_basename_regex = '{}({})?'.format(root, extension)
-    basename_regex = unescaped_basename_regex.replace('.', r'\.')
+    root, extension = os.path.splitext(basename)  
+    # science/figures/sampling_Gaussian\ \(0.5\).png
+    unescaped_basename_regex = '{}({})?'.format(
+      root\
+      .replace('(', r'\(')\
+      .replace(')', r'\)')\
+      .replace(' ', r'\ ')\
+      .replace('=', r'\='),
+      extension
+    )
+    basename_regex = unescaped_basename_regex.replace('.', r'\.')\
+      # .replace(' ', r'\ ')\
 
     # since os.path.split only splits into two parts
     # need to iterate and collect all the fragments
