@@ -109,6 +109,13 @@ PARSER.add_argument(
 )
 
 PARSER.add_argument(
+    "--ifs_to_delete",
+    nargs="+",
+    default=[],
+    required=False
+)
+
+PARSER.add_argument(
     "--use_external_tikz",
     type=str,
     help=("Folder (relative to input folder) containing externalized tikz "

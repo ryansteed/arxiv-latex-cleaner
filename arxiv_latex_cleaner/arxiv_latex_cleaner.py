@@ -143,32 +143,41 @@ def _remove_environment(text, environment):
       text)
 
 
-def _remove_iffalse_block(text):
-  """Removes possibly nested r'\iffalse*\fi' blocks from 'text'."""
-  p = re.compile(r'\\if\s*(\w+)|\\fi')
+def _remove_iffalse_block(text, switches=[]):
+  p = re.compile(r'\\if\s*(\w+)|\\else|\\fi')
   level = -1
+  el = False
   positions_to_delete = []
   start, end = 0, 0
   for m in p.finditer(text):
-    if (m.group().replace(' ', '') == r'\iffalse' or
-        m.group().replace(' ', '') == r'\if0') and level == -1:
+    if any([
+      m.group().replace(' ', '') == r'\iffalse',
+      m.group().replace(' ', '') == r'\if0'
+    ] + [
+      m.group().replace(' ', '') == r'\if{}'.format(ifswitch)
+      for ifswitch in switches
+    ]) and level == -1:
       level += 1
       start = m.start()
+    elif m.group() == r'\else' and level == 0:
+      end = m.end()
+      positions_to_delete.append((start, end))
+      el = True
     elif m.group().startswith(r'\if') and level >= 0:
       level += 1
     elif m.group() == r'\fi' and level >= 0:
       if level == 0:
         end = m.end()
-        positions_to_delete.append((start, end))
+        positions_to_delete.append( 
+          (start, end) if not el else (m.start(), end)
+        )
       level -= 1
+      el = False
     else:
       pass
 
   for (start, end) in reversed(positions_to_delete):
-    if end < len(text) and text[end].isspace():
-      end_to_del = end + 1
-    else:
-      end_to_del = end
+    end_to_del = end
     text = text[:start] + text[end_to_del:]
 
   return text
@@ -223,7 +232,7 @@ def _remove_comments_and_commands_to_delete(content, parameters):
   """Erases all LaTeX comments in the content, and writes it."""
   content = [_remove_comments_inline(line) for line in content]
   content = _remove_environment(''.join(content), 'comment')
-  content = _remove_iffalse_block(content)
+  content = _remove_iffalse_block(content, switches=parameters.get('ifs_to_delete', []))
   for command in parameters.get('commands_only_to_delete', []):
     content = _remove_command(content, command, True)
   for command in parameters['commands_to_delete']:
