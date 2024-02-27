@@ -97,13 +97,15 @@ def _copy_file(filename, params):
       os.path.join(params['output_folder'], filename))
 
 
-def _remove_command(text, command, keep_text=False):
-  """Removes '\\command{*}' from the string 'text'.
+def _remove_command(text, command, keep_text=False, square_brackets=False):
+  """Removes '\\command{*}' or '\\command[*]' from the string 'text'.
 
   Regex `base_pattern` used to match balanced parentheses taken from:
   https://stackoverflow.com/questions/546433/regular-expression-to-match-balanced-parentheses/35271017#35271017
   """
   base_pattern = r'\\' + command + r'{(?:[^}{]+|{(?:[^}{]+|{[^}{]*})*})*}'
+  if square_brackets:
+    base_pattern = r'\\' + command + r'\[(?:[^\]\[]+|\[(?:[^\]\[]+|\[[^\]\[]*\])*\])*\]'
   # Loops in case of nested commands that need to retain text, e.g.,
   # \red{hello \red{world}}.
   while True:
@@ -235,8 +237,10 @@ def _remove_comments_and_commands_to_delete(content, parameters):
   content = _remove_iffalse_block(content, switches=parameters.get('ifs_to_delete', []))
   for command in parameters.get('commands_only_to_delete', []):
     content = _remove_command(content, command, True)
+    content = _remove_command(content, command, True, square_brackets=True)
   for command in parameters['commands_to_delete']:
     content = _remove_command(content, command, False)
+    content = _remove_command(content, command, False, square_brackets=True)
   return content
 
 
